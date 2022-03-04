@@ -17,7 +17,7 @@ import skvideo.io
 
 class V4V(Dataset):
 
-    def __init__(self, video_path, video_fns, time_depth, isTrain=True):
+    def __init__(self, video_path, video_fns, time_depth, sawtooth=False, isTrain=True):
         if isTrain == True:
             overlap = 0
             hflip = True
@@ -71,8 +71,6 @@ class V4V(Dataset):
                 os.path.dirname(video_path))[0])[0]
             vlen = int(time_length*frame_rate)
 
-         # print(cnt, fn, vlen)
-         #  depth보다 frame 수가 적으면 불러오지 않음
             if vlen >= self.depth:
                 # Load PPG signals
                 splt = fn[:-4].split("_")
@@ -95,54 +93,55 @@ class V4V(Dataset):
             ppgi = min_max_scaler.fit_transform(ppgi.reshape(-1, 1))
             ppgi = min_max_scaler.fit_transform(detrend(ppgi))
 
-            # Find Peaks
-            signal, info = nk.ppg_process(ppg, sampling_rate=1000)
-            peak = signal['PPG_Peaks'] == True
+            if sawtooth:
+                # Find Peaks
+                signal, info = nk.ppg_process(ppg, sampling_rate=1000)
+                peak = signal['PPG_Peaks'] == True
 
-            video_time = np.arange(ppg.shape[0])/1000
-            video_time = video_time[::40]
-            vt_ind = np.arange(video_time.shape[0])
-            interp_func = interpolate.interp1d(video_time, vt_ind)
+                video_time = np.arange(ppg.shape[0])/1000
+                video_time = video_time[::40]
+                vt_ind = np.arange(video_time.shape[0])
+                interp_func = interpolate.interp1d(video_time, vt_ind)
 
-            # ppg time is always short than video time?
-            vt_indi = interp_func(self.ppg_time[peak])
-            vt_pk_indi = np.round(vt_indi).astype(int)
-            vt_pk = video_time[vt_pk_indi]  # peak times in video time
-            # valley times in video time
-            vt_vy = vt_pk[:-1] + (vt_pk[1:] - vt_pk[:-1])*0.66
+                # ppg time is always short than video time?
+                vt_indi = interp_func(self.ppg_time[peak])
+                vt_pk_indi = np.round(vt_indi).astype(int)
+                vt_pk = video_time[vt_pk_indi]  # peak times in video time
+                # valley times in video time
+                vt_vy = vt_pk[:-1] + (vt_pk[1:] - vt_pk[:-1])*0.66
 
-            pks = [1]*vt_pk.shape[0]
-            vys = [0]*vt_vy.shape[0]
+                pks = [1]*vt_pk.shape[0]
+                vys = [0]*vt_vy.shape[0]
 
-            vt_pv = np.stack((vt_pk[:-1], vt_vy), axis=1).reshape(-1)
-            # peak and valley times in video time
-            vt_pv = np.append(vt_pv, vt_pk[-1])
-            # peak and valley times in video time
-            vt_pv = np.append(self.video_time[0], vt_pv)
-            # peak and valley times in video time
-            vt_pv = np.append(vt_pv, self.video_time[-1])
+                vt_pv = np.stack((vt_pk[:-1], vt_vy), axis=1).reshape(-1)
+                # peak and valley times in video time
+                vt_pv = np.append(vt_pv, vt_pk[-1])
+                # peak and valley times in video time
+                vt_pv = np.append(self.video_time[0], vt_pv)
+                # peak and valley times in video time
+                vt_pv = np.append(vt_pv, self.video_time[-1])
 
-            v_pv = np.stack((pks[:-1], vys), axis=1).reshape(-1)
-            # peak and valley values in video time
-            v_pv = np.append(v_pv, pks[-1])
-            v_pv = np.append(vys[0], v_pv)
-            # peak and valley values in video time
-            v_pv = np.append(v_pv, vys[0])
+                v_pv = np.stack((pks[:-1], vys), axis=1).reshape(-1)
+                # peak and valley values in video time
+                v_pv = np.append(v_pv, pks[-1])
+                v_pv = np.append(vys[0], v_pv)
+                # peak and valley values in video time
+                v_pv = np.append(v_pv, vys[0])
 
-            # ideal peak anv valley function
-            interp_func = interpolate.interp1d(vt_pv, v_pv)
-            # [:vlen] # sawtooth ppg at video time cut
-            ppg_st = interp_func(self.video_time)
+                # ideal peak anv valley function
+                interp_func = interpolate.interp1d(vt_pv, v_pv)
+                # [:vlen] # sawtooth ppg at video time cut
+                ppg_st = interp_func(self.video_time)
 
-            # Store data only if sawtooth ppg length == depth
-            if ppg_st.shape[0] >= self.depth:
-                self.ppgs.append(ppgi)
-                self.ppg_sts.append(ppg_st)
-                # For Debugging
-                self.ppg_raw.append(ppg)
-                self.gt_paths.append(gt_path)
+                # Store data only if sawtooth ppg length == depth
+                if ppg_st.shape[0] >= self.depth:
+                    self.ppg_sts.append(ppg_st)
+                    # For Debugging
+                    self.ppg_raw.append(ppg)
+                    self.gt_paths.append(gt_path)
 
                 # depth보다 frame 수가 많거나 같은 경우만 fn 추가해줌
+                self.ppgs.append(ppgi)
                 self.video_fns.append(fn)
                 self.vlens.append(vlen)
                 print(
@@ -282,5 +281,197 @@ class V4V(Dataset):
         self.ppgi = self.ppgs[sample_num][start_frame:  end_frame]
         self.start_frame = start_frame
         self.end_frame = end_frame
+
+        return video, target
+
+
+class V4V_vreader(Dataset):
+    """
+        Dataset class for PhysNet neural network.
+    """
+
+    def __init__(self, video_path, video_fns,  time_depth, isTrain=True):
+        if isTrain == True:
+            overlap = 0
+            hflip = True
+    #             rand_shift = True
+            rand_shift = False
+        else:
+            overlap = 0
+            hflip = False
+            rand_shift = False
+
+        self.hflip = hflip
+        self.random_shift = rand_shift
+
+        # Image config
+        self.depth = time_depth
+        self.height = 128
+        self.width = 128
+        self.channel = 3
+        self.overlap = overlap
+        # overlap, s.t., 0=< overlap < 1
+        self.shift = int(self.depth*(1-overlap))
+
+        # Gathtering each video's parameters
+
+    #         self.video_fns = video_fns
+        self.video_fns = []
+        self.video_path = video_path
+        self.ppgs = []
+        self.vlens = []
+        self.nums = []
+        self.num_samples = 0
+        self.tname = []
+
+        for idx, fn in enumerate(video_fns):
+            video_path = os.path.join(self.video_path, fn)
+    #             vid = skvideo.io.vread(video_path)
+            metadata = skvideo.io.ffprobe(video_path)
+            tsplit = metadata['video']['tag']['@value'].split(':')
+            time_length = int(tsplit[0])*60*60 + \
+                int(tsplit[1])*60+float(tsplit[2])
+            frame_rate = float(
+                metadata['video']['@avg_frame_rate'].split('/')[0])
+
+            base_dir = os.path.split(os.path.split(
+                os.path.dirname(video_path))[0])[0]
+            start = 0
+    #             vlen = len(vid)
+            vlen = int(time_length*frame_rate)
+            # depth보다 frame 수가 적으면 불러오지 않음
+            if vlen >= self.depth:
+                # depth보다 frame 수가 많거나 같은 경우만 fn 추가해줌
+                self.video_fns.append(fn)
+                #  for subject in offset_list.keys():
+                #      if subject in fn:
+                #          ppg_offset = offset_list[subject]
+    #             self.vfl = vid[start:end-ppg_offset]
+                self.vlens.append(vlen)
+
+                # Load PPG signals
+                splt = fn[:-4].split("_")
+                tname = splt[0]+"-"+splt[1]+"-"+"BP.txt"
+                gt_path = os.path.join(
+                    base_dir, 'Ground truth', 'BP_raw_1KHz', tname)
+                ppg = np.array(np.loadtxt(gt_path))
+
+                self.ppg_time = np.arange(ppg.shape[0])/1000
+                self.video_time = np.arange(vlen)/25
+
+                interp_func = interpolate.interp1d(self.ppg_time, ppg)
+                ppgi = interp_func(self.video_time)
+                ppgi = nk.standardize(ppgi)[:vlen]
+                ppgi = min_max_scaler.fit_transform(ppgi.reshape(-1, 1))
+                ppgi = min_max_scaler.fit_transform(detrend(ppgi))
+                self.ppgs.append(ppgi)
+                num_samples = math.floor(vlen/self.depth)
+                #  num_samples = math.floor((vlen - start - self.depth)/self.shift)+1 #??? -ppg_offset
+
+                self.num_samples += num_samples
+                self.nums.append(self.num_samples-1)
+                self.tname.append(tname[:-4])
+                self.crop = True
+                dpath = "config/haarcascade_frontalface_alt.xml"
+                if not os.path.exists(dpath):
+                    print("Cascade file not present!")
+                self.face_cascade = cv2.CascadeClassifier(dpath)
+                print('video cnt: {} / {}, filename: {}, video len: {}'.format(idx +
+                      1, len(video_fns), fn, vlen))
+            else:
+                print('video cnt: {} / {}, filename: {}, video len: {} - short video length'.format(
+                    idx, len(video_fns), fn, vlen))
+
+    def __len__(self):
+        return self.num_samples
+
+    def __getitem__(self, idx):
+        # -------------------------------
+        # Fill video with frames
+        # -------------------------------
+        # conv3d input: N x C x D x H X W
+        sample_num = 0
+        while idx > self.nums[sample_num]:
+
+            sample_num += 1
+        if idx > self.nums[sample_num-1]:
+            idx = idx - self.nums[sample_num-1] - 1
+        self.sample_num = sample_num  # for debugging
+
+        shift = self.shift
+        depth = self.depth
+        height = self.height
+        width = self.width
+        channel = self.channel
+
+        # TODO: Add temporal jitter
+        video = torch.empty(channel, depth, height, width, dtype=torch.float)
+
+        if self.random_shift:
+            rand_offset = int(depth*(1-self.overlap)*0.5)
+            rand_shift = random.randint(-rand_offset, rand_offset)
+        else:
+            rand_shift = 0
+        if self.hflip:
+            rand_flip = bool(random.getrandbits(1))
+        else:
+            rand_flip = False
+
+        start_frame = idx * shift + rand_shift
+        end_frame = idx * shift + depth + rand_shift
+
+        start = 0
+        vlen = self.vlens[sample_num]
+        while start+start_frame < start:
+            start_frame += 1
+            end_frame += 1
+        while start + end_frame >= vlen or start + end_frame >= len(self.ppgs[sample_num]) + start:
+            start_frame -= 1
+            end_frame -= 1
+
+        fn = self.video_fns[sample_num]
+        video_path = os.path.join(self.video_path, fn)
+
+        vgen = skvideo.io.vreader(video_path)
+        detected = []
+        for img in vgen:
+            if len(detected) <= 0:
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                detected = list(
+                    self.face_cascade.detectMultiScale(gray, 1.1, 4))
+            else:
+                break
+        detected.sort(key=lambda a: a[-1] * a[-2])
+        face_rect = detected[-1]
+        x, y, w, h = face_rect
+        vgen = skvideo.io.vreader(video_path)
+        for cnt, frame in enumerate(vgen):
+            # if cnt == start_frame:
+            #      img = frame
+            #      img = np.array(img)
+            #      gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            #      detected = list(self.face_cascade.detectMultiScale(gray, 1.1, 4))
+            #      if len(detected) > 0:
+            #           detected.sort(key=lambda a: a[-1] * a[-2])
+            #           face_rect = detected[-1]
+            #           x, y, w, h = face_rect
+            if cnt >= start_frame and cnt < end_frame:
+
+                if self.crop:
+                    img = frame[y:y + h, x: x + w, :]
+                img = cv2.resize(frame, (height, width),
+                                 interpolation=cv2.INTER_CUBIC)
+                img = ToTensor()(img)
+                img = torch.sub(img, torch.mean(img, (1, 2)).view(3, 1, 1))
+
+                if rand_flip:
+                    img = torchvision.transforms.functional.hflip(img)
+                # torch.Tensor(img).permute(2,0,1)
+                video[:, cnt-start_frame, :, :] = img
+            if cnt == end_frame-1:
+                break
+
+        target = self.ppgs[sample_num][start_frame:  end_frame]
+        target = torch.tensor(target, dtype=torch.float)
 
         return video, target
