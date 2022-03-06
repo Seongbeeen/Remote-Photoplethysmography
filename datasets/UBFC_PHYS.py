@@ -221,10 +221,10 @@ class UBFC_PHYS(Dataset):
 
                     if self.crop:
                         img = frame[y:y + h, x: x + w, :]
-                    img = cv2.resize(frame, (height, width),
+                    img = cv2.resize(img, (height, width),
                                      interpolation=cv2.INTER_CUBIC)
                     img = ToTensor()(img)
-                    img = torch.sub(img, torch.mean(img, (1, 2)).view(3, 1, 1))
+                    # img = torch.sub(img, torch.mean(img, (1, 2)).view(3, 1, 1))
 
                     if rand_flip:
                         img = torchvision.transforms.functional.hflip(img)
