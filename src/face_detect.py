@@ -1,10 +1,11 @@
 import cv2
 import os
+import sys
 
 
 def face_rect(vids, every_frame=False, vreader=False):
     face_rect = []
-    dpath = "../datasets/haarcascade_frontalface_alt.xml"
+    dpath = "../src/haarcascade_frontalface_alt.xml"
     print(dpath)
     if not os.path.exists(dpath):
         print("Cascade file not present!")
