@@ -10,7 +10,6 @@ import torch
 import random
 import math
 import neurokit2 as nk
-import os
 import skvideo
 import skvideo.io
 import pandas as pd
@@ -206,10 +205,6 @@ class UBFC_PHYS(Dataset):
             target = self.ppgs[sample_num][start_frame:  end_frame]
             target = torch.tensor(target, dtype=torch.float)
 
-            # For Debugging
-            self.ppgi = self.ppgs[sample_num][start_frame:  end_frame]
-            self.start_frame = start_frame
-            self.end_frame = end_frame
         else:
             # for face detection
             vid = skvideo.io.vreader(self.vids[sample_num])
@@ -235,5 +230,9 @@ class UBFC_PHYS(Dataset):
 
             target = self.ppgs[sample_num][start_frame:  end_frame]
             target = torch.tensor(target, dtype=torch.float)
+        # For Debugging
+        self.ppgi = self.ppgs[sample_num][start_frame:  end_frame]
+        self.start_frame = start_frame
+        self.end_frame = end_frame
 
         return video, target
