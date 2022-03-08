@@ -9,12 +9,13 @@ import torch.nn as nn
 # PhyNet network
 # -------------------------------------------------------------------------------------------------------------------
 
-class PhysNetED(nn.Module):
+class ST_CNN(nn.Module):
     def __init__(self):
         super().__init__()
 
         self.start = nn.Sequential(
-            nn.Conv3d(in_channels=3, out_channels=32, kernel_size=(1, 5, 5), stride=1, padding=(0, 2, 2)),
+            nn.Conv3d(in_channels=3, out_channels=32, kernel_size=(
+                1, 5, 5), stride=1, padding=(0, 2, 2)),
             nn.BatchNorm3d(32),
             nn.ELU()
         )
@@ -22,10 +23,12 @@ class PhysNetED(nn.Module):
         # 1x
         self.loop1 = nn.Sequential(
             nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=0),
-            nn.Conv3d(in_channels=32, out_channels=64, kernel_size=(3, 3, 3), stride=1, padding=(1, 1, 1)),
+            nn.Conv3d(in_channels=32, out_channels=64, kernel_size=(
+                3, 3, 3), stride=1, padding=(1, 1, 1)),
             nn.BatchNorm3d(64),
             nn.ELU(),
-            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(3, 3, 3), stride=1, padding=(1, 1, 1)),
+            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(
+                3, 3, 3), stride=1, padding=(1, 1, 1)),
             nn.BatchNorm3d(64),
             nn.ELU()
         )
@@ -33,18 +36,22 @@ class PhysNetED(nn.Module):
         # encoder
         self.encoder = nn.Sequential(
             nn.AvgPool3d(kernel_size=(2, 2, 2), stride=(2, 2, 2), padding=0),
-            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(3, 3, 3), stride=1, padding=(1, 1, 1)),
+            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(
+                3, 3, 3), stride=1, padding=(1, 1, 1)),
             nn.BatchNorm3d(64),
             nn.ELU(),
-            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(3, 3, 3), stride=1, padding=(1, 1, 1)),
+            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(
+                3, 3, 3), stride=1, padding=(1, 1, 1)),
             nn.BatchNorm3d(64),
             nn.ELU(),
 
             nn.AvgPool3d(kernel_size=(2, 2, 2), stride=(2, 2, 2), padding=0),
-            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(3, 3, 3), stride=1, padding=(1, 1, 1)),
+            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(
+                3, 3, 3), stride=1, padding=(1, 1, 1)),
             nn.BatchNorm3d(64),
             nn.ELU(),
-            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(3, 3, 3), stride=1, padding=(1, 1, 1)),
+            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(
+                3, 3, 3), stride=1, padding=(1, 1, 1)),
             nn.BatchNorm3d(64),
             nn.ELU()
         )
@@ -52,10 +59,12 @@ class PhysNetED(nn.Module):
         #
         self.loop4 = nn.Sequential(
             nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=0),
-            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(3, 3, 3), stride=1, padding=(1, 1, 1)),
+            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(
+                3, 3, 3), stride=1, padding=(1, 1, 1)),
             nn.BatchNorm3d(64),
             nn.ELU(),
-            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(3, 3, 3), stride=1, padding=(1, 1, 1)),
+            nn.Conv3d(in_channels=64, out_channels=64, kernel_size=(
+                3, 3, 3), stride=1, padding=(1, 1, 1)),
             nn.BatchNorm3d(64),
             nn.ELU()
         )
@@ -75,7 +84,8 @@ class PhysNetED(nn.Module):
 
         self.end = nn.Sequential(
             nn.AdaptiveAvgPool3d((None, 1, 1)),
-            nn.Conv3d(in_channels=64, out_channels=1, kernel_size=(1, 1, 1), stride=1, padding=(0, 0, 0))
+            nn.Conv3d(in_channels=64, out_channels=1, kernel_size=(
+                1, 1, 1), stride=1, padding=(0, 0, 0))
         )
 
     def forward(self, x):
