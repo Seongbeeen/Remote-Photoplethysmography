@@ -20,7 +20,7 @@ class UBFC_rPPG(Dataset):
         Dataset class for PhysNet neural network.
     """
 
-    def __init__(self, video_paths, label_paths, depth, isTrain=False, vidStore=False):
+    def __init__(self, video_paths, label_paths, depth, isTrain=False):
         if isTrain == True:
             overlap = 0
             hflip = True
@@ -32,7 +32,6 @@ class UBFC_rPPG(Dataset):
             rand_shift = False
             self.isVidGen = True
 
-        self.vidStore = vidStore
         self.isTrain = isTrain
         self.hflip = hflip
         self.random_shift = rand_shift
@@ -189,7 +188,7 @@ class UBFC_rPPG_vreader(Dataset):
         Dataset class for PhysNet neural network.
     """
 
-    def __init__(self, video_paths, label_paths, depth, isTrain=False, vidStore=False):
+    def __init__(self, video_paths, label_paths, depth, isTrain=False):
         if isTrain == True:
             overlap = 0
             hflip = True
@@ -201,7 +200,6 @@ class UBFC_rPPG_vreader(Dataset):
             rand_shift = False
             self.isVidGen = True
 
-        self.vidStore = vidStore
         self.isTrain = isTrain
         self.hflip = hflip
         self.random_shift = rand_shift

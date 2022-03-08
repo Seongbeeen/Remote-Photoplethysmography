@@ -20,7 +20,7 @@ class UBFC_PHYS(Dataset):
         Dataset class for PhysNet neural network.
     """
 
-    def __init__(self, video_paths, label_paths, depth, isTrain=False, vidStore=False):
+    def __init__(self, video_paths, label_paths, depth, isTrain=False):
         if isTrain == True:
             overlap = 0
             hflip = True
@@ -31,8 +31,6 @@ class UBFC_PHYS(Dataset):
             hflip = False
             rand_shift = False
             self.isVidGen = True
-
-        self.vidStore = vidStore
         self.isTrain = isTrain
         self.hflip = hflip
         self.random_shift = rand_shift
@@ -213,7 +211,7 @@ class UBFC_PHYS_vreader(Dataset):
         Dataset class for PhysNet neural network.
     """
 
-    def __init__(self, video_paths, label_paths, depth, isTrain=False, vidStore=False):
+    def __init__(self, video_paths, label_paths, depth, isTrain=False):
         if isTrain == True:
             overlap = 0
             hflip = True
@@ -224,8 +222,6 @@ class UBFC_PHYS_vreader(Dataset):
             hflip = False
             rand_shift = False
             self.isVidGen = True
-
-        self.vidStore = vidStore
         self.isTrain = isTrain
         self.hflip = hflip
         self.random_shift = rand_shift
@@ -384,8 +380,8 @@ class UBFC_PHYS_vreader(Dataset):
             if cnt >= start_frame and cnt < end_frame:
 
                 if self.crop:
-                    img = frame[y:y + h, x: x + w, :]
-                img = cv2.resize(img, (height, width),
+                    frame = frame[y:y + h, x: x + w, :]
+                img = cv2.resize(frame, (height, width),
                                  interpolation=cv2.INTER_CUBIC)
                 img = ToTensor()(img)
                 # img = torch.sub(img, torch.mean(img, (1, 2)).view(3, 1, 1))
